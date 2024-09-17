@@ -1,99 +1,239 @@
 # fastNLP
 
-[![Build Status](https://travis-ci.org/fastnlp/fastNLP.svg?branch=master)](https://travis-ci.org/fastnlp/fastNLP)
-[![codecov](https://codecov.io/gh/fastnlp/fastNLP/branch/master/graph/badge.svg)](https://codecov.io/gh/fastnlp/fastNLP)
-[![Pypi](https://img.shields.io/pypi/v/fastNLP.svg)](https://pypi.org/project/fastNLP)
-![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)
-[![Documentation Status](https://readthedocs.org/projects/fastnlp/badge/?version=latest)](http://fastnlp.readthedocs.io/?badge=latest)
 
-fastNLP 是一款轻量级的 NLP 处理套件。你既可以使用它快速地完成一个序列标注（[NER](reproduction/seqence_labelling/ner)、POS-Tagging等）、中文分词、[文本分类](reproduction/text_classification)、[Matching](reproduction/matching)、[指代消解](reproduction/coreference_resolution)、[摘要](reproduction/Summarization)等任务； 也可以使用它构建许多复杂的网络模型，进行科研。它具有如下的特性：
+[//]: # ([![Build Status]&#40;https://travis-ci.org/fastnlp/fastNLP.svg?branch=master&#41;]&#40;https://travis-ci.org/fastnlp/fastNLP&#41;)
 
-- 统一的Tabular式数据容器，让数据预处理过程简洁明了。内置多种数据集的DataSet Loader，省去预处理代码;
-- 多种训练、测试组件，例如训练器Trainer；测试器Tester；以及各种评测metrics等等;
-- 各种方便的NLP工具，例如预处理embedding加载（包括ELMo和BERT）; 中间数据cache等;
-- 详尽的中文[文档](https://fastnlp.readthedocs.io/)、[教程](https://fastnlp.readthedocs.io/zh/latest/user/tutorials.html)以供查阅;
-- 提供诸多高级模块，例如Variational LSTM, Transformer, CRF等;
-- 在序列标注、中文分词、文本分类、Matching、指代消解、摘要等任务上封装了各种模型可供直接使用，详细内容见 [reproduction](reproduction) 部分;
-- 便捷且具有扩展性的训练器; 提供多种内置callback函数，方便实验记录、异常捕获等。
+[//]: # ([![codecov]&#40;https://codecov.io/gh/fastnlp/fastNLP/branch/master/graph/badge.svg&#41;]&#40;https://codecov.io/gh/fastnlp/fastNLP&#41;)
 
+[//]: # ([![Pypi]&#40;https://img.shields.io/pypi/v/fastNLP.svg&#41;]&#40;https://pypi.org/project/fastNLP&#41;)
+
+[//]: # (![Hex.pm]&#40;https://img.shields.io/hexpm/l/plug.svg&#41;)
+
+[//]: # ([![Documentation Status]&#40;https://readthedocs.org/projects/fastnlp/badge/?version=latest&#41;]&#40;http://fastnlp.readthedocs.io/?badge=latest&#41;)
+
+
+fastNLP是一款轻量级的自然语言处理（NLP）工具包，目标是减少用户项目中的工程型代码，例如数据处理循环、训练循环、多卡运行等。
+
+fastNLP具有如下的特性：
+
+- 便捷。在数据处理中可以通过apply函数避免循环、使用多进程提速等；在训练循环阶段可以很方便定制操作。
+- 高效。无需改动代码，实现fp16切换、多卡、ZeRO优化等。
+- 兼容。fastNLP支持多种深度学习框架作为后端。
+
+> :warning: **为了实现对不同深度学习架构的兼容，fastNLP 1.0.0之后的版本重新设计了架构，因此与过去的fastNLP版本不完全兼容，
+> 基于更早的fastNLP代码需要做一定的调整**: 
+
+## fastNLP文档
+[中文文档](http://www.fastnlp.top/docs/fastNLP/master/index.html)
 
 ## 安装指南
-
-fastNLP 依赖以下包:
-
-+ numpy>=1.14.2
-+ torch>=1.0.0
-+ tqdm>=4.28.1
-+ nltk>=3.4.1
-+ requests
-+ spacy
-
-其中torch的安装可能与操作系统及 CUDA 的版本相关，请参见 [PyTorch 官网](https://pytorch.org/) 。 
-在依赖包安装完成后，您可以在命令行执行如下指令完成安装
-
+fastNLP可以通过以下的命令进行安装
 ```shell
-pip install fastNLP
-python -m spacy download en
+pip install fastNLP>=1.0.0alpha
+```
+如果需要安装更早版本的fastNLP请指定版本号，例如
+```shell
+pip install fastNLP==0.7.1
+```
+另外，请根据使用的深度学习框架，安装相应的深度学习框架。
+
+<details>
+<summary>Pytorch</summary>
+下面是使用pytorch来进行文本分类的例子。需要安装torch>=1.6.0。
+
+```python
+from fastNLP.io import ChnSentiCorpLoader
+from functools import partial
+from fastNLP import cache_results
+from fastNLP.transformers.torch import BertTokenizer
+
+# 使用cache_results装饰器装饰函数，将prepare_data的返回结果缓存到caches/cache.pkl，再次运行时，如果
+#  该文件还存在，将自动读取缓存文件，而不再次运行预处理代码。
+@cache_results('caches/cache.pkl')
+def prepare_data():
+    # 会自动下载数据，并且可以通过文档看到返回的 dataset 应该是包含"raw_words"和"target"两个field的
+    data_bundle = ChnSentiCorpLoader().load()
+    # 使用tokenizer对数据进行tokenize
+    tokenizer = BertTokenizer.from_pretrained('hfl/chinese-bert-wwm')
+    tokenize = partial(tokenizer, max_length=256)  # 限制数据的最大长度
+    data_bundle.apply_field_more(tokenize, field_name='raw_chars', num_proc=4)  # 会新增"input_ids", "attention_mask"等field进入dataset中
+    data_bundle.apply_field(int, field_name='target', new_field_name='labels')  # 将int函数应用到每个target上，并且放入新的labels field中
+    return data_bundle
+data_bundle = prepare_data()
+print(data_bundle.get_dataset('train')[:4])
+
+# 初始化model, optimizer
+from fastNLP.transformers.torch import BertForSequenceClassification
+from torch import optim
+model = BertForSequenceClassification.from_pretrained('hfl/chinese-bert-wwm')
+optimizer = optim.AdamW(model.parameters(), lr=2e-5)
+
+# 准备dataloader
+from fastNLP import prepare_dataloader
+dls = prepare_dataloader(data_bundle, batch_size=32)
+
+# 准备训练
+from fastNLP import Trainer, Accuracy, LoadBestModelCallback, TorchWarmupCallback, Event
+callbacks = [
+    TorchWarmupCallback(warmup=0.1, schedule='linear'),   # 训练过程中调整学习率。
+    LoadBestModelCallback()  # 将在训练结束之后，加载性能最优的model
+]
+# 在训练特定时机加入一些操作， 不同时机能够获取到的参数不一样，可以通过Trainer.on函数的文档查看每个时机的参数
+@Trainer.on(Event.on_before_backward())
+def print_loss(trainer, outputs):
+    if trainer.global_forward_batches % 10 == 0:  # 每10个batch打印一次loss。
+        print(outputs.loss.item())
+
+trainer = Trainer(model=model, train_dataloader=dls['train'], optimizers=optimizer,
+                  device=0, evaluate_dataloaders=dls['dev'], metrics={'acc': Accuracy()},
+                  callbacks=callbacks, monitor='acc#acc',n_epochs=5,
+                  # Accuracy的update()函数需要pred，target两个参数，它们实际对应的就是以下的field。
+                  evaluate_input_mapping={'labels': 'target'},  # 在评测时，将dataloader中会输入到模型的labels重新命名为target
+                  evaluate_output_mapping={'logits': 'pred'}  # 在评测时，将model输出中的logits重新命名为pred
+                  )
+trainer.run()
+
+# 在测试集合上进行评测
+from fastNLP import Evaluator
+evaluator = Evaluator(model=model, dataloaders=dls['test'], metrics={'acc': Accuracy()},
+                      # Accuracy的update()函数需要pred，target两个参数，它们实际对应的就是以下的field。
+                      output_mapping={'logits': 'pred'},
+                      input_mapping={'labels': 'target'})
+evaluator.run()
 ```
 
-目前使用pip安装fastNLP的版本是0.4.1，有较多功能仍未更新，最新内容以master分支为准。
-fastNLP0.5.0版本将在近期推出，请密切关注。
+更多内容可以参考如下的链接
+### 快速入门
+
+- [0. 10 分钟快速上手 fastNLP torch](http://www.fastnlp.top/docs/fastNLP/master/tutorials/torch/fastnlp_torch_tutorial.html)
+
+### 详细使用教程
+
+- [1. Trainer 和 Evaluator 的基本使用](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_0.html)
+- [2. DataSet 和 Vocabulary 的基本使用](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_1.html)
+- [3. DataBundle 和 Tokenizer 的基本使用](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_2.html)
+- [4. TorchDataloader 的内部结构和基本使用](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_3.html)
+- [5. fastNLP 中的预定义模型](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_4.html)
+- [6. Trainer 和 Evaluator 的深入介绍](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_4.html)
+- [7. fastNLP 与 paddle 或 jittor 的结合](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_5.html)
+- [8. 使用 Bert + fine-tuning 完成 SST-2 分类](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_e1.html)
+- [9. 使用 Bert + prompt 完成 SST-2 分类](http://www.fastnlp.top/docs/fastNLP/master/tutorials/basic/fastnlp_tutorial_e2.html)
 
 
-## fastNLP教程
+</details>
 
-- [0. 快速入门](https://fastnlp.readthedocs.io/zh/latest/user/quickstart.html)
-- [1. 使用DataSet预处理文本](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_1_data_preprocess.html)
-- [2. 使用DataSetLoader加载数据集](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_2_load_dataset.html)
-- [3. 使用Embedding模块将文本转成向量](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_3_embedding.html)
-- [4. 动手实现一个文本分类器I-使用Trainer和Tester快速训练和测试](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_4_loss_optimizer.html)
-- [5. 动手实现一个文本分类器II-使用DataSetIter实现自定义训练过程](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_5_datasetiter.html)
-- [6. 快速实现序列标注模型](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_6_seq_labeling.html)
-- [7. 使用Modules和Models快速搭建自定义模型](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_7_modules_models.html)
-- [8. 使用Metric快速评测你的模型](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_8_metrics.html)
-- [9. 使用Callback自定义你的训练过程](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_9_callback.html)
-- [10. 使用fitlog 辅助 fastNLP 进行科研](https://fastnlp.readthedocs.io/zh/latest/tutorials/tutorial_10_fitlog.html)
+<details>
+<summary>Paddle</summary>
+下面是使用paddle来进行文本分类的例子。需要安装paddle>=2.2.0以及paddlenlp>=2.3.3。
+
+```python
+from fastNLP.io import ChnSentiCorpLoader
+from functools import partial
+
+# 会自动下载数据，并且可以通过文档看到返回的 dataset 应该是包含"raw_words"和"target"两个field的
+data_bundle = ChnSentiCorpLoader().load()
+
+# 使用tokenizer对数据进行tokenize
+from paddlenlp.transformers import BertTokenizer
+tokenizer = BertTokenizer.from_pretrained('hfl/chinese-bert-wwm')
+tokenize = partial(tokenizer, max_length=256)  # 限制一下最大长度
+data_bundle.apply_field_more(tokenize, field_name='raw_chars', num_proc=4)  # 会新增"input_ids", "attention_mask"等field进入dataset中
+data_bundle.apply_field(int, field_name='target', new_field_name='labels')  # 将int函数应用到每个target上，并且放入新的labels field中
+print(data_bundle.get_dataset('train')[:4])
+
+# 初始化 model 
+from paddlenlp.transformers import BertForSequenceClassification, LinearDecayWithWarmup
+from paddle import optimizer, nn
+class SeqClsModel(nn.Layer):
+    def __init__(self, model_checkpoint, num_labels):
+        super(SeqClsModel, self).__init__()
+        self.num_labels = num_labels
+        self.bert = BertForSequenceClassification.from_pretrained(model_checkpoint)
+
+    def forward(self, input_ids, token_type_ids=None, position_ids=None, attention_mask=None):
+        logits = self.bert(input_ids, token_type_ids, position_ids, attention_mask)
+        return logits
+
+    def train_step(self, input_ids, labels, token_type_ids=None, position_ids=None, attention_mask=None):
+        logits = self(input_ids, token_type_ids, position_ids, attention_mask)
+        loss_fct = nn.CrossEntropyLoss()
+        loss = loss_fct(logits.reshape((-1, self.num_labels)), labels.reshape((-1, )))
+        return {
+            "logits": logits,
+            "loss": loss,
+        }
+    
+    def evaluate_step(self, input_ids, token_type_ids=None, position_ids=None, attention_mask=None):
+        logits = self(input_ids, token_type_ids, position_ids, attention_mask)
+        return {
+            "logits": logits,
+        }
+
+model = SeqClsModel('hfl/chinese-bert-wwm', num_labels=2)
+
+# 准备dataloader
+from fastNLP import prepare_dataloader
+dls = prepare_dataloader(data_bundle, batch_size=16)
+
+# 训练过程中调整学习率。
+scheduler = LinearDecayWithWarmup(2e-5, total_steps=20 * len(dls['train']), warmup=0.1)
+optimizer = optimizer.AdamW(parameters=model.parameters(), learning_rate=scheduler)
+
+# 准备训练
+from fastNLP import Trainer, Accuracy, LoadBestModelCallback, Event
+callbacks = [
+    LoadBestModelCallback()  # 将在训练结束之后，加载性能最优的model
+]
+# 在训练特定时机加入一些操作， 不同时机能够获取到的参数不一样，可以通过Trainer.on函数的文档查看每个时机的参数
+@Trainer.on(Event.on_before_backward())
+def print_loss(trainer, outputs):
+    if trainer.global_forward_batches % 10 == 0:  # 每10个batch打印一次loss。
+        print(outputs["loss"].item())
+
+trainer = Trainer(model=model, train_dataloader=dls['train'], optimizers=optimizer,
+                  device=0, evaluate_dataloaders=dls['dev'], metrics={'acc': Accuracy()},
+                  callbacks=callbacks, monitor='acc#acc',
+                  # Accuracy的update()函数需要pred，target两个参数，它们实际对应的就是以下的field。
+                  evaluate_output_mapping={'logits': 'pred'},
+                  evaluate_input_mapping={'labels': 'target'}
+                  )
+trainer.run()
+
+# 在测试集合上进行评测
+from fastNLP import Evaluator
+evaluator = Evaluator(model=model, dataloaders=dls['test'], metrics={'acc': Accuracy()},
+                      # Accuracy的update()函数需要pred，target两个参数，它们实际对应的就是以下的field。
+                      output_mapping={'logits': 'pred'},
+                      input_mapping={'labels': 'target'})
+evaluator.run()
+```
+
+更多内容可以参考如下的链接
+### 快速入门
+
+- [0. 10 分钟快速上手 fastNLP paddle](http://www.fastnlp.top/docs/fastNLP/master/tutorials/torch/fastnlp_torch_tutorial.html)
+
+### 详细使用教程
+
+- [1. 使用 paddlenlp 和 fastNLP 实现中文文本情感分析](http://www.fastnlp.top/docs/fastNLP/master/tutorials/paddle/fastnlp_tutorial_paddle_e1.html)
+- [2. 使用 paddlenlp 和 fastNLP 训练中文阅读理解任务](http://www.fastnlp.top/docs/fastNLP/master/tutorials/paddle/fastnlp_tutorial_paddle_e2.html)
+
+</details>
+
+<details>
+<summary>oneflow</summary>
+</details>
 
 
 
-## 内置组件
-
-大部分用于的 NLP 任务神经网络都可以看做由词嵌入（embeddings）和两种模块：编码器（encoder）、解码器（decoder）组成。
-
-以文本分类任务为例，下图展示了一个BiLSTM+Attention实现文本分类器的模型流程图：
-
-
-![](./docs/source/figures/text_classification.png)
-
-fastNLP 在 embeddings 模块中内置了几种不同的embedding：静态embedding（GloVe、word2vec）、上下文相关embedding
-（ELMo、BERT）、字符embedding（基于CNN或者LSTM的CharEmbedding）
-
-与此同时，fastNLP 在 modules 模块中内置了两种模块的诸多组件，可以帮助用户快速搭建自己所需的网络。 两种模块的功能和常见组件如下:
-
-<table>
-<tr>
-    <td><b> 类型 </b></td>
-    <td><b> 功能 </b></td>
-    <td><b> 例子 </b></td>
-</tr>
-<tr>
-    <td> encoder </td>
-    <td> 将输入编码为具有具有表示能力的向量 </td>
-    <td> embedding, RNN, CNN, transformer
-</tr>
-<tr>
-    <td> decoder </td>
-    <td> 将具有某种表示意义的向量解码为需要的输出形式 </td>
-    <td> MLP, CRF </td>
-</tr>
-</table>
+<details>
+<summary>jittor</summary>
+</details>
 
 
 ## 项目结构
 
-![](./docs/source/figures/workflow.png)
-
-fastNLP的大致工作流程如上图所示，而项目结构如下：
+fastNLP的项目结构如下：
 
 <table>
 <tr>
@@ -118,11 +258,9 @@ fastNLP的大致工作流程如上图所示，而项目结构如下：
 </tr>
 <tr>
     <td><b> fastNLP.io </b></td>
-    <td> 实现了读写功能，包括数据读入，模型读写等 </td>
+    <td> 实现了读写功能，包括数据读入与预处理，模型读写，数据与模型自动下载等 </td>
 </tr>
 </table>
 
-
 <hr>
 
-*In memory of @FengZiYjun.  May his soul rest in peace. We will miss you very very much!*

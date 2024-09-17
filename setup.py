@@ -11,15 +11,19 @@ with open('LICENSE', encoding='utf-8') as f:
 with open('requirements.txt', encoding='utf-8') as f:
     reqs = f.read()
 
+pkgs = [p for p in find_packages(exclude=['docs', 'tests', 'tutorials']) if p.startswith('fastNLP')]
+print(pkgs)
+
 setup(
     name='FastNLP',
-    version='dev0.5.0',
+    version='1.0.0',
+    url='https://gitee.com/fastnlp/fastNLP',
     description='fastNLP: Deep Learning Toolkit for NLP, developed by Fudan FastNLP Team',
     long_description=readme,
     long_description_content_type='text/markdown',
     license='Apache License',
-    author='FudanNLP',
+    author='Fudan FastNLP Team',
     python_requires='>=3.6',
-    packages=find_packages(),
+    packages=pkgs,
     install_requires=reqs.strip().split('\n'),
 )

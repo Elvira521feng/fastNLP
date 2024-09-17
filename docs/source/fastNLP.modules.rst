@@ -1,17 +1,16 @@
-fastNLP.modules
-===============
+fastNLP.modules package
+=======================
 
 .. automodule:: fastNLP.modules
    :members:
    :undoc-members:
    :show-inheritance:
 
-子模块
+Subpackages
 -----------
 
 .. toctree::
-   :titlesonly:
-   :maxdepth: 1
+   :maxdepth: 4
 
-   fastNLP.modules.decoder
-   fastNLP.modules.encoder
+   fastNLP.modules.mix_modules
+   fastNLP.modules.torch

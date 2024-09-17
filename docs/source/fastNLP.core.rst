@@ -1,28 +1,32 @@
-fastNLP.core
-============
+fastNLP.core package
+====================
 
 .. automodule:: fastNLP.core
    :members:
    :undoc-members:
    :show-inheritance:
 
-子模块
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   fastNLP.core.callbacks
+   fastNLP.core.collators
+   fastNLP.core.controllers
+   fastNLP.core.dataloaders
+   fastNLP.core.dataset
+   fastNLP.core.drivers
+   fastNLP.core.log
+   fastNLP.core.metrics
+   fastNLP.core.samplers
+   fastNLP.core.utils
+
+Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 4
 
-   fastNLP.core.batch
-   fastNLP.core.callback
-   fastNLP.core.const
-   fastNLP.core.dataset
-   fastNLP.core.field
-   fastNLP.core.instance
-   fastNLP.core.losses
-   fastNLP.core.metrics
-   fastNLP.core.optimizer
-   fastNLP.core.sampler
-   fastNLP.core.tester
-   fastNLP.core.trainer
-   fastNLP.core.utils
    fastNLP.core.vocabulary

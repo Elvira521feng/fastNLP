@@ -20,13 +20,13 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'fastNLP'
-copyright = '2018, xpqiu'
-author = 'xpqiu'
+copyright = '2022, fastNLP'
+author = 'fastNLP'
 
 # The short X.Y version
-version = '0.4.5'
+version = '1.0'
 # The full version, including alpha/beta/rc tags
-release = '0.4.5'
+release = '1.0.0-alpha'
 
 # -- General configuration ---------------------------------------------------
 
@@ -42,18 +42,28 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
-    'sphinx.ext.todo'
+    'sphinx.ext.todo',
+    'sphinx_autodoc_typehints',
+    'sphinx_multiversion',
+    'nbsphinx',
 ]
 
 autodoc_default_options = {
     'member-order': 'bysource',
     'special-members': '__init__',
-    'undoc-members': True,
+    'undoc-members': False,
 }
+
+add_module_names = False
+autosummary_ignore_module_all = False
+# autodoc_typehints = "description"
+autoclass_content = "class"
+typehints_fully_qualified = False
+typehints_defaults = "comma"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
-
+# template_bridge
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
@@ -108,12 +118,16 @@ html_static_path = ['_static']
 # 'searchbox.html']``.
 #
 # html_sidebars = {}
-
+html_sidebars = {
+    '**': [
+        'versions.html',
+    ],
+}
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'fastNLPdoc'
+htmlhelp_basename = 'fastNLP'
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -138,17 +152,14 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, 'fastNLP.tex', 'fastNLP Documentation',
-     'xpqiu', 'manual'),
-]
+latex_documents = []
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'fastnlp', 'fastNLP Documentation',
+    (master_doc, 'fastNLP', 'fastNLP Documentation',
      [author], 1)
 ]
 
@@ -159,18 +170,22 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'fastNLP', 'fastNLP Documentation',
-     author, 'fastNLP', 'One line description of project.',
+     author, 'fastNLP', 'A fast NLP tool for programming.',
      'Miscellaneous'),
 ]
 
+# -- Options for Multiversions ----------------------------------------------
+smv_latest_version = 'dev0.8.0'
 
 # -- Extension configuration -------------------------------------------------
 def maybe_skip_member(app, what, name, obj, skip, options):
-    if name.startswith("_"):
-        return True
     if obj.__doc__ is None:
         return True
-    return False
+    if name == "__init__":
+        return False
+    if name.startswith("_"):
+        return True
+    return skip
 
 
 def setup(app):

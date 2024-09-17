@@ -1,19 +1,28 @@
-fastNLP.io
-==========
+fastNLP.io package
+==================
 
 .. automodule:: fastNLP.io
    :members:
    :undoc-members:
    :show-inheritance:
 
-子模块
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   fastNLP.io.loader
+   fastNLP.io.pipe
+
+Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 4
 
-   fastNLP.io.base_loader
+   fastNLP.io.data_bundle
    fastNLP.io.embed_loader
-   fastNLP.io.dataset_loader
-   fastNLP.io.data_loader
-   fastNLP.io.model_io
+   fastNLP.io.file_reader
+   fastNLP.io.file_utils
+   fastNLP.io.utils
